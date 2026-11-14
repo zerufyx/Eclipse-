@@ -178,6 +178,15 @@ a{color:inherit}
 .info .d{font-size:.8rem;color:var(--muted)}
 .row{margin-top:auto;padding-top:.6rem;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .price{font:800 1rem/1 var(--display);font-variant-numeric:tabular-nums}
+.pr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+.price.sale{color:#ff7ac0}
+.was{color:var(--muted);font-size:.75rem;font-weight:500}
+.tg .of{background:#ff3d9a;border-color:#ff3d9a;color:#fff}
+.offb{display:inline-block;font:700 .7rem/1 var(--body);background:#ff3d9a;color:#fff;border-radius:99px;padding:.3rem .5rem;vertical-align:middle}
+.until{display:block;margin-top:.35rem;font:500 .78rem/1.2 var(--body);color:#ff9fd0}
+.pd-price .was{font-size:.85rem}
+.tab[data-k="ofertas"]{border-color:#ff3d9a;color:#ff9fd0}
+.tab[data-k="ofertas"][aria-selected="true"]{background:#ff3d9a;color:#fff;border-color:#ff3d9a}
 .price.tbd{font:600 .7rem/1.25 var(--body);color:var(--muted)}
 .add{display:flex;align-items:center;gap:5px;height:34px;padding:0 .8rem;border:0;border-radius:99px;background:linear-gradient(135deg,#b866ff,#7b2cff);color:#fff;font-weight:700;font-size:.78rem}
 .add svg{width:13px;height:13px;stroke:currentColor;stroke-width:2.8;fill:none;stroke-linecap:round}
@@ -625,12 +634,13 @@ document.querySelectorAll('.tape-track').forEach(t => {
 let cat = 'todo', query = '';
 const tabsEl = $('tabs'), gridEl = $('grid');
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }), {rootMargin:'0px 0px -8% 0px'}) : null;
-const pool = () => cat === 'favs' ? PRODUCTS.filter(p => favs.has(p.id)) : PRODUCTS.filter(p => forG(p, gender));
-const count = k => k === 'favs' ? favs.size : k === 'todo' ? pool().length : PRODUCTS.filter(p => forG(p, gender) && p.c === k).length;
+const pool = () => cat === 'favs' ? PRODUCTS.filter(p => favs.has(p.id)) : PRODUCTS.filter(p => forG(p, gender) && (cat !== 'ofertas' || p.sale));
+const count = k => k === 'favs' ? favs.size : k === 'ofertas' ? PRODUCTS.filter(p => forG(p, gender) && p.sale).length : k === 'todo' ? PRODUCTS.filter(p => forG(p, gender)).length : PRODUCTS.filter(p => forG(p, gender) && p.c === k).length;
 const heart = '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 
 function renderTabs(){
-  const all = [['todo','Todo'], ...CATS, ['favs','Favoritos']];
+  if (cat === 'ofertas' && !count('ofertas')) cat = 'todo';
+  const all = [['todo','Todo'], ...(count('ofertas') ? [['ofertas','Ofertas']] : []), ...CATS, ['favs','Favoritos']];
   tabsEl.innerHTML = all.map(([k,l]) => `<button class="tab" role="tab" type="button" data-k="${k}" aria-selected="${k === cat}">${k === 'favs' ? heart : ''}${l}<em>${count(k)}</em></button>`).join('');
 }
 function renderGender(){
@@ -639,22 +649,34 @@ function renderGender(){
   $('catTitle').textContent = gender === 'mujer' ? 'Para ella' : 'Para él';
   $('heroEyebrow').textContent = 'Eclipse · ' + gLabel(gender);
 }
+/* Ofertas: precio de antes tachado y % de descuento; al pasar la fecha vuelve al precio de antes */
+const todayStr = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+function withSale(p){
+  p.sale = false;
+  if (p.pa != null && p.p != null && p.pa > p.p){
+    if (!p.hasta || p.hasta >= todayStr()){ p.sale = true; p.off = Math.round((1 - p.p / p.pa) * 100); }
+    else p.p = p.pa;
+  }
+  return p;
+}
+const fmtHasta = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-US', {day:'numeric', month:'long'}); };
+const priceHTML = p => p.p == null ? '<span class="price tbd">Precio por<br>WhatsApp</span>' : `<span class="pr"><span class="price${p.sale ? ' sale' : ''}">${money(p.p)}</span>${p.sale ? `<s class="was">${money(p.pa)}</s>` : ''}</span>`;
 function cardHTML(p, i, animate){
   return `<article class="card${animate && !reduce ? ' rv' : ''}" style="--i:${i % 8}">
     <button class="ph" type="button" data-open="${p.id}" aria-label="Ver ${esc(p.n)}"><div class="tilt">${p.img && p.img[0] ? `<img src="${p.img[0]}" alt="${esc(p.n)}" loading="lazy" decoding="async">` : '<div class="empty-img">Foto pronto</div>'}</div></button>
-    <div class="tg">${p.t ? `<span>${esc(p.t)}</span>` : ''}${p.nuevo ? '<span class="nw">Nuevo</span>' : ''}${p.agotado ? '<span class="so">Agotado</span>' : ''}</div>
+    <div class="tg">${p.t ? `<span>${esc(p.t)}</span>` : ''}${p.sale ? `<span class="of">-${p.off}%</span>` : ''}${p.nuevo ? '<span class="nw">Nuevo</span>' : ''}${p.agotado ? '<span class="so">Agotado</span>' : ''}</div>
     <button class="fav" type="button" data-fav="${p.id}" aria-pressed="${favs.has(p.id)}" aria-label="Guardar ${esc(p.n)} en favoritos">${heart}</button>
     <div class="info">
       <h4><button type="button" data-open="${p.id}">${esc(p.n)}</button></h4>
       <span class="d">${esc(p.d)}</span>
-      <div class="row">${p.p == null ? '<span class="price tbd">Precio por<br>WhatsApp</span>' : `<span class="price">${money(p.p)}</span>`}<button class="add" type="button" data-add="${p.id}" ${p.agotado ? 'disabled' : ''} aria-label="Agregar ${esc(p.n)}">${p.agotado ? 'Agotado' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar'}</button></div>
+      <div class="row">${priceHTML(p)}<button class="add" type="button" data-add="${p.id}" ${p.agotado ? 'disabled' : ''} aria-label="Agregar ${esc(p.n)}">${p.agotado ? 'Agotado' : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Agregar'}</button></div>
     </div>
   </article>`;
 }
 function renderGrid(animate = true){
   const q = query.trim().toLowerCase();
-  const list = pool().filter(p => (cat === 'todo' || cat === 'favs' || p.c === cat) && (!q || [p.n, p.d, p.t, catName(p.c)].join(' ').toLowerCase().includes(q)));
-  $('secTitle').textContent = cat === 'todo' ? 'Todo' : cat === 'favs' ? 'Favoritos' : catName(cat);
+  const list = pool().filter(p => (cat === 'todo' || cat === 'favs' || cat === 'ofertas' || p.c === cat) && (!q || [p.n, p.d, p.t, catName(p.c)].join(' ').toLowerCase().includes(q)));
+  $('secTitle').textContent = cat === 'todo' ? 'Todo' : cat === 'favs' ? 'Favoritos' : cat === 'ofertas' ? 'Ofertas' : catName(cat);
   $('secCount').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
   let empty;
   if (q) empty = `<p class="empty"><b>Sin resultados</b>No hay productos que coincidan con “${esc(q)}”.</p>`;
@@ -727,7 +749,7 @@ function openProduct(id){
   $('pdTag').textContent = [p.t, catName(p.c), p.g === 'unisex' ? 'Hombre y mujer' : gLabel(p.g)].filter(Boolean).join(' · ');
   $('pdName').textContent = p.n; $('pdDesc').textContent = p.d;
   $('pdPrice').className = 'pd-price' + (p.p == null ? ' tbd' : '');
-  $('pdPrice').textContent = p.p == null ? 'Precio por WhatsApp' : money(p.p);
+  $('pdPrice').innerHTML = p.p == null ? 'Precio por WhatsApp' : `${money(p.p)}${p.sale ? ` <s class="was">${money(p.pa)}</s> <span class="offb">-${p.off}%</span>${p.hasta ? `<small class="until">Oferta hasta el ${fmtHasta(p.hasta)}</small>` : ''}` : ''}`;
   $('pdFav').setAttribute('aria-pressed', favs.has(id)); $('pdFav').dataset.fav = id;
   $('pdAsk').href = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(`Hola ${BIZ}, me interesa: ${p.n}${p.t ? ' (' + p.t + ')' : ''}. ¿Está disponible? ${productLink(id)}`)}`;
   $('pdErr').hidden = true;
@@ -810,7 +832,7 @@ $('cMode').addEventListener('click', e => {
 function orderText(){
   const tot = cartTotal();
   const lines = cart.map((l,i) => { const p = byId(l.id);
-    return `${i+1}. ${p.n}${p.t ? ' ' + p.t : ''} (${catName(p.c)}) - ${p.d}${l.s ? '\n   Talla: ' + l.s : ''}\n   Cantidad: ${l.q} · ${lineTotal(p, l.q)}`; });
+    return `${i+1}. ${p.n}${p.t ? ' ' + p.t : ''} (${catName(p.c)}) - ${p.d}${l.s ? '\n   Talla: ' + l.s : ''}\n   Cantidad: ${l.q} · ${lineTotal(p, l.q)}${p.sale ? ` (oferta -${p.off}%, antes ${money(p.pa)})` : ''}`; });
   const name = $('cName').value.trim(), addr = $('cAddr').value.trim(), note = $('cNote').value.trim();
   return [
     `Hola ${BIZ}, quiero hacer este pedido:`, '',
@@ -928,7 +950,7 @@ function setDd(id, txt, href){
 }
 function applyData(d){
   if (d.cats && d.cats.length) CATS = d.cats.map(c => [c.slug, c.nombre]);
-  PRODUCTS = (d.prods || []).map(r => ({id:r.id, g:r.genero, c:r.categoria, t:r.modelo || '', n:r.nombre, d:r.detalle || '', p:r.precio == null ? null : +r.precio, sizes:r.tallas && r.tallas.length ? r.tallas : null, img:r.fotos || [], nuevo:r.nuevo, agotado:r.agotado}));
+  PRODUCTS = (d.prods || []).map(r => withSale({id:r.id, g:r.genero, c:r.categoria, t:r.modelo || '', n:r.nombre, d:r.detalle || '', p:r.precio == null ? null : +r.precio, pa:r.precio_antes == null ? null : +r.precio_antes, hasta:r.oferta_hasta || null, sizes:r.tallas && r.tallas.length ? r.tallas : null, img:r.fotos || [], nuevo:r.nuevo, agotado:r.agotado}));
   const aj = d.aj || {};
   const wa = String(aj.whatsapp || '').replace(/\D/g, '');
   if (wa.length >= 10){ WA_NUMBER = wa.length === 10 ? '1' + wa : wa; setWaLinks(); $('waFt').textContent = fmtPhone(WA_NUMBER); document.querySelectorAll('.to b').forEach(b => b.textContent = fmtPhone(WA_NUMBER)); $('waEnd').lastChild.textContent = ' ' + fmtPhone(WA_NUMBER).replace('+1 ', ''); }

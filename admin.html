@@ -119,6 +119,31 @@ main{padding:16px 0 calc(90px + var(--sab))}
 .toast{position:fixed;left:50%;bottom:calc(84px + var(--sab));z-index:70;transform:translateX(-50%);max-width:90vw;background:var(--lilac);color:#130a1e;padding:.6rem 1rem;border-radius:99px;font-size:.85rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5)}
 .toast.err{background:var(--bad);color:#2a0008}
 .cfg{max-width:520px;margin:40px auto;padding:1.4rem;border:1px dashed #ffcf5a;border-radius:16px;color:#ffcf5a}
+
+/* Selección, edición en grupo y subida en masa */
+.stat-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:.2rem 0 .8rem}
+.stat-row .stat{margin:0}
+.stat-row .r{display:flex;gap:8px;align-items:center}
+.row.sel{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet) inset}
+.chk{width:22px;height:22px;accent-color:var(--violet);margin:0;cursor:pointer}
+.pick{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted);cursor:pointer}
+.was{color:var(--muted);text-decoration:line-through;margin-left:6px;font-size:.8rem}
+.chip.of{border-color:#ff3d9a;color:#ff9fd0}
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:35;padding:10px 16px calc(10px + var(--sab));background:rgba(17,10,26,.97);border-top:1px solid var(--violet);display:flex;align-items:center;gap:8px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.selbar span{font-weight:700;margin-right:auto}
+body.selecting .fab{display:none}
+.hint{font-size:.78rem;color:var(--muted);margin:.4rem 0 0}
+.offnote{font-size:.8rem;color:#ff9fd0;margin:.35rem 0 0;min-height:1em}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;text-align:center;padding:1.4rem 1rem;border:1.5px dashed var(--line);border-radius:14px;color:var(--muted);cursor:pointer;margin-top:.6rem}
+.drop strong{color:var(--lilac)}
+.drop svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px;margin-top:.6rem;max-height:180px;overflow:auto}
+.thumbs img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:8px;background:var(--ink-3)}
+.prog{height:10px;border-radius:99px;background:var(--ink-3);overflow:hidden;margin-top:1rem}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b866ff,#ff3d9a);transition:width .25s}
+.radio{display:flex;flex-direction:column;gap:6px;margin-top:.4rem}
+.radio label{display:flex;align-items:center;gap:8px;font-size:.88rem;cursor:pointer}
+.radio input{accent-color:var(--violet);width:18px;height:18px;margin:0}
 </style>
 </head>
 <body>
@@ -166,7 +191,7 @@ main{padding:16px 0 calc(90px + var(--sab))}
         <select id="fC" aria-label="Filtrar por categoría"></select>
         <input type="search" id="fQ" placeholder="Buscar producto" aria-label="Buscar producto">
       </div>
-      <p class="stat" id="stat"></p>
+      <div class="stat-row"><p class="stat" id="stat"></p><div class="r"><label class="pick"><input type="checkbox" class="chk" id="selAll">Elegir todos</label><button class="btn sm" type="button" id="bulkAddBtn"><svg viewBox="0 0 24 24"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12M7 9l5-5 5 5"/></svg>Subir varios</button></div></div>
       <div class="list" id="list"></div>
       <button class="btn vi fab" type="button" id="newBtn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo producto</button>
     </section>
@@ -219,7 +244,12 @@ main{padding:16px 0 calc(90px + var(--sab))}
     <label class="f"><span>Para</span></label>
     <div class="seg" id="edG"><button type="button" data-g="hombre">Hombre</button><button type="button" data-g="mujer">Mujer</button><button type="button" data-g="unisex">Los dos</button></div>
     <label class="f"><span>Detalle</span><input type="text" id="edDesc" placeholder="Ej. Café con visera rosa · Ajustable"></label>
-    <label class="f"><span>Precio (USD)</span><input type="number" id="edPrice" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = “Precio por WhatsApp”"></label>
+    <div class="two">
+      <label class="f"><span>Precio (USD)</span><input type="number" id="edPrice" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = por WhatsApp"></label>
+      <label class="f"><span>Precio antes (descuento)</span><input type="number" id="edWas" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = sin oferta"></label>
+    </div>
+    <label class="f"><span>Oferta hasta (opcional)</span><input type="date" id="edUntil"><small>Ese día a la medianoche se quita la oferta y vuelve al precio de antes.</small></label>
+    <p class="offnote" id="edOff"></p>
     <label class="f"><span>Tallas</span><input type="text" id="edSizes" placeholder="Vacío = no pide talla. Ej. S, M, L, XL"><small>Sepáralas con comas.</small></label>
     <div class="presets" id="presets">
       <button type="button" data-p="7, 7⅛, 7¼, 7⅜, 7½, 7⅝, 7¾, 8">Gorra fitted</button>
@@ -235,6 +265,69 @@ main{padding:16px 0 calc(90px + var(--sab))}
     </div>
     <p class="msg" id="edMsg" hidden></p>
     <div class="save"><button class="btn del" type="button" id="edDel" hidden>Borrar</button><button class="btn vi" type="submit" id="edSave">Guardar</button></div>
+  </form>
+</div>
+
+<!-- BARRA DE SELECCIÓN -->
+<div class="selbar" id="selbar" hidden><span id="selN"></span><button class="btn sm" type="button" id="selClear">Cancelar</button><button class="btn vi sm" type="button" id="bulkEditBtn">Cambiar en grupo</button></div>
+
+<!-- EDITAR EN GRUPO -->
+<div class="ov" id="bk" hidden>
+  <form class="sheet" id="bkForm" novalidate>
+    <div class="sh"><h2 id="bkTitle">Cambiar en grupo</h2><button class="ico" type="button" data-x aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <label class="f"><span>¿Qué quieres hacer?</span>
+      <select id="bkAct">
+        <option value="descuento">Poner descuento (%)</option>
+        <option value="quitar">Quitar descuento</option>
+        <option value="precio">Cambiar precio</option>
+        <option value="categoria">Mover a otra categoría</option>
+        <option value="genero">Cambiar para quién es (Hombre / Mujer / Los dos)</option>
+        <option value="agotado">Marcar como agotado</option>
+        <option value="disponible">Marcar como disponible</option>
+        <option value="ocultar">Ocultar del catálogo</option>
+        <option value="mostrar">Mostrar en el catálogo</option>
+        <option value="nuevo">Poner etiqueta Nuevo</option>
+        <option value="quitarnuevo">Quitar etiqueta Nuevo</option>
+        <option value="borrar">Borrar productos</option>
+      </select>
+    </label>
+    <div data-for="descuento"><div class="two"><label class="f"><span>Descuento %</span><input type="number" id="bkPct" min="1" max="90" step="1" inputmode="numeric" placeholder="Ej. 20"></label><label class="f"><span>Oferta hasta</span><input type="date" id="bkUntil"></label></div><p class="hint">El precio actual queda tachado como “antes” y se calcula el nuevo. Los que no tienen precio se saltan.</p></div>
+    <div data-for="precio" hidden><label class="f"><span>Precio nuevo (USD)</span><input type="number" id="bkPrice" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = “Precio por WhatsApp”"></label><p class="hint">También quita cualquier descuento que tuvieran.</p></div>
+    <div data-for="categoria" hidden><label class="f"><span>Categoría</span><select id="bkCat"></select></label></div>
+    <div data-for="genero" hidden><label class="f"><span>Para</span><select id="bkG"><option value="hombre">Hombre</option><option value="mujer">Mujer</option><option value="unisex">Los dos</option></select></label></div>
+    <div data-for="borrar" hidden><p class="hint" style="color:var(--bad)">Se borran los productos y sus fotos. No se puede deshacer.</p></div>
+    <div class="save"><button class="btn vi" type="submit" id="bkGo">Aplicar</button></div>
+  </form>
+</div>
+
+<!-- SUBIR VARIOS -->
+<div class="ov" id="ba" hidden>
+  <form class="sheet" id="baForm" novalidate>
+    <div class="sh"><h2>Subir varios productos</h2><button class="ico" type="button" data-x aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <p class="hint" style="margin-top:0">Cada foto se vuelve un producto con los datos de abajo. Después puedes editar cualquiera por separado.</p>
+    <label class="drop" for="baFile"><svg viewBox="0 0 24 24"><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3M12 4v12M7 9l5-5 5 5"/></svg><strong id="baCount">Elegir fotos</strong><span>Puedes elegir muchas a la vez</span></label>
+    <input type="file" id="baFile" accept="image/*" multiple hidden>
+    <div class="thumbs" id="baThumbs"></div>
+    <label class="f"><span>Nombre</span></label>
+    <div class="radio">
+      <label><input type="radio" name="baNameMode" value="num" checked>Un nombre + número (Gorra 1, Gorra 2…)</label>
+      <label><input type="radio" name="baNameMode" value="file">El nombre de cada archivo</label>
+    </div>
+    <label class="f" id="baBaseWrap"><input type="text" id="baBase" placeholder="Ej. Gorra 9FORTY" value=""></label>
+    <div class="two">
+      <label class="f"><span>Categoría *</span><select id="baCat"></select></label>
+      <label class="f"><span>Modelo o marca</span><input type="text" id="baModel" placeholder="Ej. 9FORTY"></label>
+    </div>
+    <label class="f"><span>Para</span><select id="baG"><option value="unisex">Los dos</option><option value="hombre">Hombre</option><option value="mujer">Mujer</option></select></label>
+    <label class="f"><span>Detalle</span><input type="text" id="baDesc" placeholder="Ej. Ajustable"></label>
+    <div class="two">
+      <label class="f"><span>Precio (USD)</span><input type="number" id="baPrice" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = por WhatsApp"></label>
+      <label class="f"><span>Precio antes (descuento)</span><input type="number" id="baWas" min="0" step="0.01" inputmode="decimal" placeholder="Vacío = sin oferta"></label>
+    </div>
+    <label class="f"><span>Tallas</span><input type="text" id="baSizes" placeholder="Vacío = no pide talla. Ej. S, M, L"></label>
+    <div class="flags"><label class="sw"><input type="checkbox" id="baNew">Nuevo</label><label class="sw"><input type="checkbox" id="baHide">Subirlos ocultos</label></div>
+    <div id="baProgWrap" hidden><div class="prog"><i id="baProg"></i></div><p class="hint" id="baProgTxt"></p></div>
+    <div class="save"><button class="btn vi" type="submit" id="baGo" disabled>Subir</button></div>
   </form>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -369,6 +462,7 @@ function visible(){
 }
 function renderList(){
   const list = visible();
+  renderSel(list);
   const total = prods.length, ocultos = prods.filter(p => p.oculto).length, agot = prods.filter(p => p.agotado).length;
   $('stat').textContent = `${total} producto${total === 1 ? '' : 's'} · ${agot} agotado${agot === 1 ? '' : 's'} · ${ocultos} oculto${ocultos === 1 ? '' : 's'}`;
   if (!total){
@@ -379,14 +473,15 @@ function renderList(){
   const filtered = $('fG').value || $('fC').value || $('fQ').value.trim();
   $('list').innerHTML = list.map(p => {
     const i = prods.indexOf(p);
-    return `<article class="row${p.oculto ? ' off' : ''}" data-id="${p.id}">
+    return `<article class="row${p.oculto ? ' off' : ''}${sel.has(p.id) ? ' sel' : ''}" data-id="${p.id}">
       ${p.fotos[0] ? `<img class="th" src="${esc(p.fotos[0])}" alt="" loading="lazy">` : '<div class="th"></div>'}
       <div>
         <div class="nm">${esc(p.nombre)}</div>
-        <div class="chips"><span class="chip vi">${G[p.genero]}</span><span class="chip">${esc(catName(p.categoria))}</span>${p.modelo ? `<span class="chip">${esc(p.modelo)}</span>` : ''}${p.nuevo ? '<span class="chip vi">Nuevo</span>' : ''}${p.tallas.length ? `<span class="chip">${p.tallas.length} tallas</span>` : ''}</div>
-        <div style="font-size:.85rem;color:var(--muted)">${p.precio == null ? 'Precio por WhatsApp' : '$' + Number(p.precio).toFixed(2).replace(/\.00$/, '')}</div>
+        <div class="chips"><span class="chip vi">${G[p.genero]}</span><span class="chip">${esc(catName(p.categoria))}</span>${p.modelo ? `<span class="chip">${esc(p.modelo)}</span>` : ''}${onSale(p) ? `<span class="chip of">-${Math.round((1 - p.precio / p.precio_antes) * 100)}%${p.oferta_hasta ? ' hasta ' + p.oferta_hasta.slice(5).split('-').reverse().join('/') : ''}</span>` : ''}${p.nuevo ? '<span class="chip vi">Nuevo</span>' : ''}${p.tallas.length ? `<span class="chip">${p.tallas.length} tallas</span>` : ''}</div>
+        <div style="font-size:.85rem;color:var(--muted)">${p.precio == null ? 'Precio por WhatsApp' : `<b style="color:${onSale(p) ? '#ff9fd0' : 'var(--lilac)'}">${usd(p.precio)}</b>${onSale(p) ? `<span class="was">${usd(p.precio_antes)}</span>` : ''}`}</div>
       </div>
       <div class="acts">
+        <label class="pick"><input type="checkbox" class="chk" data-sel ${sel.has(p.id) ? 'checked' : ''} aria-label="Elegir ${esc(p.nombre)}"></label>
         <label class="sw"><input type="checkbox" data-flag="agotado" ${p.agotado ? 'checked' : ''}>Agotado</label>
         <label class="sw"><input type="checkbox" data-flag="oculto" ${p.oculto ? 'checked' : ''}>Oculto</label>
         <span class="sp"></span>
@@ -433,6 +528,9 @@ function openEditor(p, isCopy){
   $('edModel').value = p?.modelo || '';
   $('edDesc').value = p?.detalle || '';
   $('edPrice').value = p?.precio ?? '';
+  $('edWas').value = p?.precio_antes ?? '';
+  $('edUntil').value = p?.oferta_hasta || '';
+  offNote();
   $('edSizes').value = (p?.tallas || []).join(', ');
   $('edNew').checked = !!p?.nuevo; $('edOut').checked = !!p?.agotado; $('edHide').checked = !!p?.oculto;
   gSel = p?.genero || $('fG').value || 'unisex'; renderG();
@@ -493,11 +591,14 @@ $('edForm').addEventListener('submit', async e => {
   e.preventDefault();
   const nombre = $('edName').value.trim();
   if (!nombre){ $('edMsg').textContent = 'Ponle un nombre al producto.'; $('edMsg').hidden = false; $('edName').focus(); return; }
-  const precioTxt = $('edPrice').value.trim();
+  const precioTxt = $('edPrice').value.trim(), wasTxt = $('edWas').value.trim();
+  if (wasTxt !== '' && (precioTxt === '' || +wasTxt <= +precioTxt)){ $('edMsg').textContent = 'El precio de antes tiene que ser mayor que el precio nuevo.'; $('edMsg').hidden = false; $('edWas').focus(); return; }
   const row = {
     store_id: STORE, nombre, categoria: $('edCat').value, genero: gSel,
     modelo: $('edModel').value.trim() || null, detalle: $('edDesc').value.trim() || null,
     precio: precioTxt === '' ? null : Math.max(0, +precioTxt),
+    precio_antes: wasTxt === '' ? null : +wasTxt,
+    oferta_hasta: wasTxt === '' ? null : ($('edUntil').value || null),
     tallas: $('edSizes').value.split(',').map(s => s.trim()).filter(Boolean),
     fotos, nuevo: $('edNew').checked, agotado: $('edOut').checked, oculto: $('edHide').checked,
     updated_at: new Date().toISOString()
@@ -517,6 +618,157 @@ $('edDel').addEventListener('click', async () => {
   if (error) return fail(error, 'borrar el producto');
   removeFiles([...editing.fotos, ...removed]).catch(() => {});
   closeEditor(); toast('Producto borrado'); loadProds();
+});
+
+
+/* ---------- Precios y ofertas ---------- */
+const usd = n => '$' + Number(n).toFixed(2).replace(/\.00$/, '');
+const todayStr = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+const onSale = p => p.precio_antes != null && p.precio != null && +p.precio_antes > +p.precio && (!p.oferta_hasta || p.oferta_hasta >= todayStr());
+function offNote(){
+  const n = +$('edPrice').value, w = +$('edWas').value;
+  $('edOff').textContent = $('edPrice').value && $('edWas').value && w > n ? `Se verá con ${Math.round((1 - n / w) * 100)}% de descuento: ${usd(n)} (antes ${usd(w)})` : '';
+}
+['edPrice','edWas'].forEach(id => $(id).addEventListener('input', offNote));
+
+/* ---------- Selección ---------- */
+const sel = new Set();
+function renderSel(list){
+  for (const id of [...sel]) if (!prods.some(p => p.id === id)) sel.delete(id);
+  $('selbar').hidden = sel.size === 0;
+  document.body.classList.toggle('selecting', sel.size > 0);
+  $('selN').textContent = `${sel.size} elegido${sel.size === 1 ? '' : 's'}`;
+  const vis = list || visible();
+  $('selAll').checked = vis.length > 0 && vis.every(p => sel.has(p.id));
+}
+$('list').addEventListener('change', e => {
+  const c = e.target.closest('[data-sel]'); if (!c) return;
+  const row = c.closest('.row'), id = row.dataset.id;
+  if (c.checked) sel.add(id); else sel.delete(id);
+  row.classList.toggle('sel', c.checked); renderSel();
+});
+$('selAll').addEventListener('change', e => { visible().forEach(p => e.target.checked ? sel.add(p.id) : sel.delete(p.id)); renderList(); });
+$('selClear').addEventListener('click', () => { sel.clear(); renderList(); });
+
+function openSheet(id){ $(id).hidden = false; document.body.style.overflow = 'hidden'; }
+function closeSheet(id){ $(id).hidden = true; if ($('ed').hidden && $('bk').hidden && $('ba').hidden) document.body.style.overflow = ''; }
+['bk','ba'].forEach(id => $(id).addEventListener('click', e => { if (e.target === $(id) || e.target.closest('[data-x]')) closeSheet(id); }));
+
+/* ---------- Editar en grupo ---------- */
+function bkShow(){ const a = $('bkAct').value; $('bkForm').querySelectorAll('[data-for]').forEach(d => d.hidden = d.dataset.for !== a); $('bkGo').className = 'btn ' + (a === 'borrar' ? 'del' : 'vi'); $('bkGo').textContent = a === 'borrar' ? `Borrar ${sel.size}` : 'Aplicar'; }
+$('bkAct').addEventListener('change', bkShow);
+$('bulkEditBtn').addEventListener('click', () => {
+  $('bkCat').innerHTML = cats.map(c => `<option value="${esc(c.slug)}">${esc(c.nombre)}</option>`).join('');
+  $('bkTitle').textContent = `Cambiar ${sel.size} producto${sel.size === 1 ? '' : 's'}`;
+  bkShow(); openSheet('bk');
+});
+async function chunked(items, size, fn){ for (let i = 0; i < items.length; i += size){ const r = await fn(items.slice(i, i + size)); if (r && r.error) throw r.error; } }
+$('bkForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const act = $('bkAct').value, ids = [...sel], list = prods.filter(p => sel.has(p.id)), now = new Date().toISOString();
+  const same = patch => chunked(ids, 150, part => sb.from('cat_productos').update({ ...patch, updated_at: now }).in('id', part));
+  $('bkGo').disabled = true;
+  try {
+    let msg = 'Listo';
+    if (act === 'descuento'){
+      const pct = +$('bkPct').value;
+      if (!(pct >= 1 && pct <= 90)) throw new Error('Pon un descuento entre 1 y 90 %');
+      const until = $('bkUntil').value || null;
+      const withPrice = list.filter(p => p.precio != null || p.precio_antes != null);
+      for (let i = 0; i < withPrice.length; i += 8){
+        const res = await Promise.all(withPrice.slice(i, i + 8).map(p => {
+          const base = +(p.precio_antes ?? p.precio);
+          return sb.from('cat_productos').update({ precio_antes: base, precio: Math.round(base * (1 - pct / 100) * 100) / 100, oferta_hasta: until, updated_at: now }).eq('id', p.id);
+        }));
+        const bad = res.find(r => r.error); if (bad) throw bad.error;
+      }
+      msg = `Descuento de ${pct}% en ${withPrice.length} producto${withPrice.length === 1 ? '' : 's'}` + (withPrice.length < list.length ? ` (${list.length - withPrice.length} sin precio se saltaron)` : '');
+    } else if (act === 'quitar'){
+      const onOffer = list.filter(p => p.precio_antes != null);
+      for (let i = 0; i < onOffer.length; i += 8){
+        const res = await Promise.all(onOffer.slice(i, i + 8).map(p => sb.from('cat_productos').update({ precio: p.precio_antes, precio_antes: null, oferta_hasta: null, updated_at: now }).eq('id', p.id)));
+        const bad = res.find(r => r.error); if (bad) throw bad.error;
+      }
+      msg = `Descuento quitado en ${onOffer.length} producto${onOffer.length === 1 ? '' : 's'}`;
+    } else if (act === 'precio'){
+      const t = $('bkPrice').value.trim();
+      await same({ precio: t === '' ? null : Math.max(0, +t), precio_antes: null, oferta_hasta: null });
+      msg = 'Precio cambiado';
+    } else if (act === 'categoria') await same({ categoria: $('bkCat').value });
+    else if (act === 'genero') await same({ genero: $('bkG').value });
+    else if (act === 'agotado') await same({ agotado: true });
+    else if (act === 'disponible') await same({ agotado: false });
+    else if (act === 'ocultar') await same({ oculto: true });
+    else if (act === 'mostrar') await same({ oculto: false });
+    else if (act === 'nuevo') await same({ nuevo: true });
+    else if (act === 'quitarnuevo') await same({ nuevo: false });
+    else if (act === 'borrar'){
+      if (!confirmBox(`¿Borrar ${ids.length} producto${ids.length === 1 ? '' : 's'}? No se puede deshacer.`)){ $('bkGo').disabled = false; return; }
+      await chunked(ids, 150, part => sb.from('cat_productos').delete().in('id', part));
+      removeFiles(list.flatMap(p => p.fotos)).catch(() => {});
+      msg = `${ids.length} borrado${ids.length === 1 ? '' : 's'}`;
+    }
+    sel.clear(); closeSheet('bk'); toast(msg); loadProds();
+  } catch(err){ fail(err, 'aplicar el cambio'); }
+  $('bkGo').disabled = false;
+});
+
+/* ---------- Subir varios ---------- */
+let baFiles = [];
+$('bulkAddBtn').addEventListener('click', () => {
+  if (!cats.length) return toast('Primero crea una categoría.', true);
+  $('baCat').innerHTML = cats.map(c => `<option value="${esc(c.slug)}">${esc(c.nombre)}</option>`).join('');
+  $('baCat').value = $('fC').value || cats[0].slug;
+  if ($('fG').value) $('baG').value = $('fG').value;
+  baFiles = []; $('baThumbs').innerHTML = ''; $('baCount').textContent = 'Elegir fotos'; $('baGo').disabled = true; $('baGo').textContent = 'Subir';
+  $('baProgWrap').hidden = true; openSheet('ba');
+});
+$('baForm').querySelectorAll('[name="baNameMode"]').forEach(r => r.addEventListener('change', () => { $('baBaseWrap').hidden = $('baForm').baNameMode.value !== 'num'; }));
+$('baFile').addEventListener('change', e => {
+  const add = [...e.target.files].filter(f => f.type.startsWith('image/')); e.target.value = '';
+  baFiles.push(...add);
+  $('baCount').textContent = `${baFiles.length} foto${baFiles.length === 1 ? '' : 's'} elegida${baFiles.length === 1 ? '' : 's'} · toca para agregar más`;
+  $('baThumbs').innerHTML = baFiles.slice(0, 60).map(f => `<img src="${URL.createObjectURL(f)}" alt="">`).join('') + (baFiles.length > 60 ? `<span class="hint">+${baFiles.length - 60}</span>` : '');
+  $('baGo').disabled = !baFiles.length; $('baGo').textContent = `Subir ${baFiles.length} producto${baFiles.length === 1 ? '' : 's'}`;
+});
+const fileTitle = f => f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+$('baForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!baFiles.length) return;
+  const mode = $('baForm').baNameMode.value, base = $('baBase').value.trim();
+  if (mode === 'num' && !base) return toast('Escribe el nombre para los productos.', true);
+  const priceT = $('baPrice').value.trim(), wasT = $('baWas').value.trim();
+  if (wasT !== '' && (priceT === '' || +wasT <= +priceT)) return toast('El precio de antes tiene que ser mayor que el precio nuevo.', true);
+  const common = {
+    store_id: STORE, categoria: $('baCat').value, genero: $('baG').value,
+    modelo: $('baModel').value.trim() || null, detalle: $('baDesc').value.trim() || null,
+    precio: priceT === '' ? null : Math.max(0, +priceT), precio_antes: wasT === '' ? null : +wasT,
+    tallas: $('baSizes').value.split(',').map(x => x.trim()).filter(Boolean),
+    nuevo: $('baNew').checked, oculto: $('baHide').checked, agotado: false
+  };
+  const files = baFiles.slice(), total = files.length;
+  const startOrden = (prods.length ? Math.min(...prods.map(p => p.orden)) : 0) - (total + 1) * 10;
+  const rows = new Array(total); let done = 0, failed = 0, next = 0;
+  $('baGo').disabled = true; $('baProgWrap').hidden = false;
+  const tick = () => { $('baProg').style.width = (done / total * 100) + '%'; $('baProgTxt').textContent = `Subiendo ${done} de ${total}${failed ? ` · ${failed} con error` : ''}… no cierres esta página`; };
+  tick();
+  const worker = async () => {
+    while (next < total){
+      const i = next++, f = files[i];
+      try {
+        const url = await upload(await compress(f));
+        rows[i] = { ...common, nombre: mode === 'num' ? `${base} ${i + 1}` : (fileTitle(f) || `${catName(common.categoria)} ${i + 1}`), fotos: [url], orden: startOrden + i * 10 };
+      } catch(err){ failed++; console.error(err); }
+      done++; tick();
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  const ok = rows.filter(Boolean);
+  try { await chunked(ok, 100, part => sb.from('cat_productos').insert(part)); }
+  catch(err){ fail(err, 'guardar los productos'); $('baGo').disabled = false; return; }
+  closeSheet('ba'); baFiles = [];
+  toast(`${ok.length} producto${ok.length === 1 ? '' : 's'} subido${ok.length === 1 ? '' : 's'}` + (failed ? ` · ${failed} foto${failed === 1 ? '' : 's'} no se pudo subir` : ''), failed > 0);
+  loadProds();
 });
 
 /* Importar las gorras que ya estaban en el catálogo */
