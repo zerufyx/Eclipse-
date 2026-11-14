@@ -193,6 +193,13 @@ main{padding:16px 0 calc(90px + var(--sab))}
         <label class="f"><span>Aviso arriba del catálogo</span><textarea id="ajAviso" placeholder="Ej. Envíos gratis este fin de semana"></textarea><small>Déjalo vacío para no mostrar nada.</small></label>
         <button class="btn vi" type="submit" style="width:100%;margin-top:1.2rem">Guardar datos</button>
       </form>
+      <form class="card" id="pwForm" style="margin-top:14px">
+        <h2>Cambiar contraseña</h2>
+        <p class="s">Para entrar a este admin. Mínimo 8 caracteres.</p>
+        <label class="f"><span>Contraseña nueva</span><input type="password" id="pw1" autocomplete="new-password" minlength="8" required></label>
+        <label class="f"><span>Repítela</span><input type="password" id="pw2" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn" type="submit" style="width:100%;margin-top:1.2rem">Cambiar contraseña</button>
+      </form>
     </section>
   </main>
 </div>
@@ -542,6 +549,16 @@ $('ajForm').addEventListener('submit', async e => {
   const { error } = await sb.from('cat_ajustes').upsert(row);
   if (error) return fail(error, 'guardar los datos');
   toast('Datos guardados');
+});
+
+$('pwForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const a = $('pw1').value, b = $('pw2').value;
+  if (a.length < 8) return toast('La contraseña necesita mínimo 8 caracteres.', true);
+  if (a !== b) return toast('Las dos contraseñas no son iguales.', true);
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) return fail(error, 'cambiar la contraseña');
+  $('pw1').value = $('pw2').value = ''; toast('Contraseña cambiada');
 });
 
 sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT'){ $('app').hidden = true; $('login').hidden = false; } });
