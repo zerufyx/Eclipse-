@@ -788,8 +788,10 @@ let dataReady = !sbOn;
 let cart = store.get('ec-cart', []).filter(l => !dataReady || byId(l.id));
 let mode = 'domicilio';
 const save = () => store.set('ec-cart', cart);
-const cartCount = () => cart.reduce((a,l) => a + l.q, 0);
-const cartTotal = () => cart.some(l => byId(l.id).p == null) ? null : cart.reduce((a,l) => a + l.q * byId(l.id).p, 0);
+/* Solo cuentan los productos que ya cargaron (los de Supabase llegan unos segundos después) */
+const live = () => cart.filter(l => byId(l.id));
+const cartCount = () => live().reduce((a,l) => a + l.q, 0);
+const cartTotal = () => live().some(l => byId(l.id).p == null) ? null : live().reduce((a,l) => a + l.q * byId(l.id).p, 0);
 const lineTotal = (p, q) => p.p == null ? 'Por confirmar' : money(p.p * q);
 function addLine(id, size, q){
   const l = cart.find(x => x.id === id && x.s === size);
@@ -804,7 +806,7 @@ function renderCart(){
   document.body.classList.toggle('has-cart', n > 0);
   $('cbN').textContent = n; $('cbT').textContent = tot == null ? '' : money(tot);
   $('cartForm').hidden = n === 0;
-  $('cartItems').innerHTML = n ? cart.map((l,i) => { const p = byId(l.id); return `
+  $('cartItems').innerHTML = n ? cart.map((l,i) => { const p = byId(l.id); if (!p) return ''; return `
     <div class="it">
       ${p.img && p.img[0] ? `<img src="${p.img[0]}" alt="">` : '<span></span>'}
       <div class="it-txt"><strong>${esc(p.n)}</strong><small>${esc(p.t || catName(p.c))} · ${esc(p.d)}${l.s ? ' · Talla ' + esc(l.s) : ''}</small></div>
@@ -831,7 +833,7 @@ $('cMode').addEventListener('click', e => {
 ['cName','cAddr','cNote'].forEach(id => $(id).addEventListener('input', () => { $(id).closest('.field').classList.remove('bad'); updateWaLink(); }));
 function orderText(){
   const tot = cartTotal();
-  const lines = cart.map((l,i) => { const p = byId(l.id);
+  const lines = live().map((l,i) => { const p = byId(l.id);
     return `${i+1}. ${p.n}${p.t ? ' ' + p.t : ''} (${catName(p.c)}) - ${p.d}${l.s ? '\n   Talla: ' + l.s : ''}\n   Cantidad: ${l.q} · ${lineTotal(p, l.q)}${p.sale ? ` (oferta -${p.off}%, antes ${money(p.pa)})` : ''}\n   Ver: ${productLink(p.id)}`; });
   const name = $('cName').value.trim(), addr = $('cAddr').value.trim(), note = $('cNote').value.trim();
   return [
@@ -999,7 +1001,7 @@ if (deep){
     if (document.readyState === 'complete') openProduct(p.id); else addEventListener('load', () => openProduct(p.id));
   });
 } else {
-  Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]).then(playIntro);
+  Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]).then(() => { try { playIntro(); } catch(e){ console.error(e); showPick(); } });
 }
 
 
