@@ -832,7 +832,7 @@ $('cMode').addEventListener('click', e => {
 function orderText(){
   const tot = cartTotal();
   const lines = cart.map((l,i) => { const p = byId(l.id);
-    return `${i+1}. ${p.n}${p.t ? ' ' + p.t : ''} (${catName(p.c)}) - ${p.d}${l.s ? '\n   Talla: ' + l.s : ''}\n   Cantidad: ${l.q} · ${lineTotal(p, l.q)}${p.sale ? ` (oferta -${p.off}%, antes ${money(p.pa)})` : ''}`; });
+    return `${i+1}. ${p.n}${p.t ? ' ' + p.t : ''} (${catName(p.c)}) - ${p.d}${l.s ? '\n   Talla: ' + l.s : ''}\n   Cantidad: ${l.q} · ${lineTotal(p, l.q)}${p.sale ? ` (oferta -${p.off}%, antes ${money(p.pa)})` : ''}\n   Ver: ${productLink(p.id)}`; });
   const name = $('cName').value.trim(), addr = $('cAddr').value.trim(), note = $('cNote').value.trim();
   return [
     `Hola ${BIZ}, quiero hacer este pedido:`, '',
